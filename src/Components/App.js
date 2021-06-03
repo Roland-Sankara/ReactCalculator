@@ -83,6 +83,7 @@ class App extends Component {
 
             this.setState({expression: this.state.expression + this.state.currentOperand});
              // round off the computation to 4 decimal places
+             // eslint-disable-next-line
             this.setState({computation: eval(this.state.expression).toFixed(4)});
             // convert the computation into a Number
             this.setState({computation: parseFloat(this.state.computation)});
