@@ -7,7 +7,7 @@ class App extends Component {
         super(props);
         this.state = {
             buttons: [
-                { key: 1, id: 'clear', value: 'Clear', class: 'span-two' },
+                { key: 1, id: 'clear', value: 'AC', class: 'span-two' },
                 { key: 2, id: 'delete', value: 'DEL', class: '' },
                 { key: 3, id: 'add', value: '÷', class: 'operation' },
                 { key: 4, id: 'one', value: '1', class: 'number' },
@@ -30,13 +30,15 @@ class App extends Component {
             previousOperand: '',
             currentOperand: '',
             operation: null,
-            computation:null
+            computation:'',
+            expression: ''
         }
 
         this.clear = ()=> {
             this.setState({currentOperand:''});
             this.setState({previousOperand:''});
             this.setState({operation: null});
+            this.setState({expression: ''});
         }
     
         this.deleteNumber = ()=> {
@@ -44,82 +46,74 @@ class App extends Component {
         }
     
         this.appendNumber = (number)=>{
-            if(number === "." && this.state.currentOperand.toString().includes('.')) return;
-            this.setState({currentOperand:this.state.currentOperand.toString() + number.toString()});
+            if(number === '.' && this.state.currentOperand.includes('.')) return;
+            if(number === '0' && this.state.currentOperand.includes('0')) return;
+            this.setState({currentOperand: this.state.currentOperand + number});
         }
     
         this.chooseOperation = (operation)=>{
-            if(this.state.currentOperand === '') return;
-            if(this.state.previousOperand !== ''){
-                this.compute();
-            }
-            this.setState({operation:operation});
-            this.setState({previousOperand:parseFloat(this.state.currentOperand).toString()});
-            this.setState({currentOperand:''});
+            this.setState({
+                operation: operation,
+                currentOperand: '',
+                previousOperand: this.state.currentOperand
+            });
     
         }
     
         this.compute = ()=> {
-            const prev = parseFloat(this.state.previousOperand);
-            const current = parseFloat(this.state.currentOperand);
-            // console.log(prev,current);
-            if(isNaN(prev) || isNaN(current)) return;
-    
-            switch (this.state.operation){
-                case '+':
-                    this.setState({computation: prev + current});
-                    break;
-                case '÷':
-                    this.setState({computation: prev / current});
-                    break;
-                case '-':
-                    this.setState({computation: prev - current});
-                    break;
-                case '*':
-                    this.setState({computation: prev * current});
-                    break;
-                default:
-                    return 
+           
+            if(/÷/g.test(this.state.expression)){
+                this.setState({expression: this.state.expression.replace(/÷/g,'/')});
             }
-    
+            //  If 2 or more operators are entered consecutively, use the last operator
+            if(/(\*|\+|\/)-\//g.test(this.state.expression)){
+                this.setState({expression: this.state.expression.replace(/(\*|\+|\/)-\//g,'/')});
+            }else if(/(\/|\+|\*)-\*/g.test(this.state.expression)){
+                this.setState({expression: this.state.expression.replace(/(\/|\+|\*)-\*/g,'*')});
+            }else if(/(\/|\*)-\+/g.test(this.state.expression)){
+                this.setState({expression: this.state.expression.replace(/(\/|\*)-\+/g,'+')});
+            }
+            else if(/(\*|\+|\/)\//g.test(this.state.expression)){
+                this.setState({expression: this.state.expression.replace(/(\*|\+|\/)\//g,'/')});
+            }else if(/(\/|-|\+)\*/g.test(this.state.expression)){
+                this.setState({expression: this.state.expression.replace(/(\/|-|\+)\*/g,'*')});
+            }else{
+                console.log(this.state.expression);
+            }
+
+            this.setState({expression: this.state.expression + this.state.currentOperand});
+             // round off the computation to 4 decimal places
+            this.setState({computation: eval(this.state.expression).toFixed(4)});
+            // convert the computation into a Number
+            this.setState({computation: parseFloat(this.state.computation)});
             this.setState({currentOperand: this.state.computation});
-            this.setState({operation: null});
-            this.setState({previousOperand:''});
+
         }
     
-        // this.getDisplayNumber = (number)=> {
-        //     const stringNumber = number.toString();
-        //     const integerDigits = parseFloat(stringNumber.split('.')[0]);
-        //     const decimalDigits = stringNumber.split('.')[1];
-        //     let integerDisplay;
-    
-        //     if(isNaN(integerDigits)){
-        //         integerDisplay = '';
-        //     }
-        //     else{
-        //         integerDisplay = integerDigits.toLocaleString('en',{
-        //             maximumFractionDigits:0
-        //         })
-        //     }
-    
-        //     if(decimalDigits != null){
-        //         return parseFloat(`${integerDisplay}.${decimalDigits}`);
-        //     } 
-        //     else{
-        //         return integerDisplay;
-        //     }
-        // }
+        
     
         this.updateDisplay = ()=> {
-            // this.currentOperandTextElement.innerText = this.getDisplayNumber(this.currentOperand);
-            console.log(this.state.operation, this.state.currentOperand, this.state.previousOperand);
+            // if previous operand starts wit zeros remove them.
+            if(/^0{1,}/.test(this.state.previousOperand)){
+                this.setState({previousOperand: this.state.previousOperand.replace(/^0{1,}/,'')});
+            }
+
             if(this.state.operation !== null){
-                this.setState({previousOperand: `${this.state.previousOperand} ${this.state.operation}`});
+                // this.setState({expression: this.state.computation});
+                this.setState({previousOperand: this.state.previousOperand + this.state.operation});
+                if(this.state.computation){
+                    this.setState({expression: this.state.previousOperand});
+                }else{
+                    this.setState({expression: this.state.expression + this.state.previousOperand});
+                }
+                
+            }else{
+                this.setState({previousOperand: ''});
             }
-            else{
-                this.setState({previousOperand:''});
-            }
-            
+
+            this.setState({computation: ''});
+           
+           
         }
 
         
@@ -132,7 +126,6 @@ class App extends Component {
         const equalsButton = document.querySelector('#equals');
         const deleteButton = document.querySelector('#delete');
         const allClearButton = document.querySelector('#clear');
-        const displayElement = document.querySelector('#display');
 
         numberButtons.forEach(button=>{
             button.addEventListener('click', ()=>{
@@ -149,13 +142,10 @@ class App extends Component {
 
         equalsButton.addEventListener('click', (button)=>{
             this.compute();
-            this.updateDisplay();
         })
 
         allClearButton.addEventListener('click', (button)=>{
             this.clear();
-            this.updateDisplay();
-            displayElement.innerText = 0;
         })
         
         deleteButton.addEventListener('click', (button)=>{
@@ -167,8 +157,8 @@ class App extends Component {
         return (
             <div className="calculator-grid">
                 <div className="output">
-                    <div className="previous-operand">{this.state.previousOperand}</div>
-                    <div className="current-operand" id='display'>{this.state.currentOperand}</div>
+                    <div className="previous-operand">{this.state.expression}</div>
+                    <div className="current-operand" id='display'>{this.state.currentOperand?this.state.currentOperand:0}</div>
                 </div>
 
                 {this.state.buttons.map(button=> <Button key={button.key} attributes={button}/>)}
